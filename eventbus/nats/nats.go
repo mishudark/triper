@@ -2,10 +2,10 @@ package nats
 
 import (
 	"encoding/json"
-	"github.com/mishudark/eventhus"
 	"strings"
 
-	nats "github.com/nats-io/go-nats"
+	"github.com/mishudark/triper"
+	nats "github.com/nats-io/nats.go"
 )
 
 // Client nats
@@ -29,7 +29,7 @@ func NewClient(urls string, useTLS bool) (*Client, error) {
 }
 
 // Publish a event
-func (c *Client) Publish(event eventhus.Event, bucket, subset string) error {
+func (c *Client) Publish(event triper.Event, bucket, subset string) error {
 	nc, err := c.Options.Connect()
 	if err != nil {
 		return err

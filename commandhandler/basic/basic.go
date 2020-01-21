@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/mishudark/eventhus"
+	"github.com/mishudark/triper"
 )
 
 // ErrInvalidID missing initial event
@@ -12,13 +12,13 @@ var ErrInvalidID = errors.New("Invalid ID, initial event missign")
 
 // Handler contains the info to manage commands
 type Handler struct {
-	repository     *eventhus.Repository
+	repository     *triper.Repository
 	aggregate      reflect.Type
 	bucket, subset string
 }
 
 // NewCommandHandler return a handler
-func NewCommandHandler(repository *eventhus.Repository, aggregate eventhus.AggregateHandler, bucket, subset string) eventhus.CommandHandle {
+func NewCommandHandler(repository *triper.Repository, aggregate triper.AggregateHandler, bucket, subset string) triper.CommandHandler {
 	return &Handler{
 		repository: repository,
 		aggregate:  reflect.TypeOf(aggregate).Elem(),
@@ -27,35 +27,52 @@ func NewCommandHandler(repository *eventhus.Repository, aggregate eventhus.Aggre
 	}
 }
 
-// Handle a command
-func (h *Handler) Handle(command eventhus.Command) error {
+// Handle a command, if any error is produced, it will be published to the errors bucket
+func (h *Handler) Handle(command triper.Command) error {
 	var err error
 
 	version := command.GetVersion()
-	aggregate := reflect.New(h.aggregate).Interface().(eventhus.AggregateHandler)
+	aggregate := reflect.New(h.aggregate).Interface().(triper.AggregateHandler)
+
+	defer func() {
+		if err != nil {
+			h.repository.PublishError(err, command, h.bucket, "errors")
+		}
+	}()
 
 	if version != 0 {
 		if err = h.repository.Load(aggregate, command.GetAggregateID()); err != nil {
-			return err
+			return triper.NewFailure(err, triper.FailureLoadingEvents, command)
 		}
 	}
 
+	// the aggregate can have errors trying to replay the previous events
+	if aggregate.HasError() {
+		return triper.NewFailure(aggregate.GetError(), triper.FailureReplayingEvents, command)
+	}
+
 	if err = aggregate.HandleCommand(command); err != nil {
-		return err
+		return triper.NewFailure(err, triper.FailureProcessingCommand, command)
+	}
+
+	// After to handle the command, the aggregate can have errors applying the new events
+	if aggregate.HasError() {
+		return triper.NewFailure(aggregate.GetError(), triper.FailureReplayingEvents, command)
 	}
 
 	// if not contain a valid ID,  the initial event (some like createAggreagate event) is missing
 	if aggregate.GetID() == "" {
-		return ErrInvalidID
+		return triper.NewFailure(ErrInvalidID, triper.FailureInvalidID, command)
 	}
 
+	// add the command id for traceability
+	aggregate.AttachCommandID(command.GetID())
+
+	// save the changes using the repository
 	if err = h.repository.Save(aggregate, version); err != nil {
-		return err
+		return triper.NewFailure(err, triper.FailureSavingOnStorage, command)
 	}
 
-	if err = h.repository.PublishEvents(aggregate, h.bucket, h.subset); err != nil {
-		return err
-	}
-
-	return nil
+	err = h.repository.PublishEvents(aggregate, h.bucket, h.subset)
+	return triper.NewFailure(err, triper.FailurePublishingEvents, command)
 }

@@ -1,25 +1,56 @@
-package eventhus
+package triper
 
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 	"sync"
 )
 
-var (
-	mu       sync.RWMutex
-	registry = make(map[string]reflect.Type)
-)
+var registry = make(map[string]reflect.Type)
 
 // Event stores the data for every event
 type Event struct {
 	ID            string      `json:"id"`
 	AggregateID   string      `json:"aggregate_id"`
 	AggregateType string      `json:"aggregate_type"`
+	CommandID     string      `json:"command_id"`
 	Version       int         `json:"version"`
 	Type          string      `json:"type"`
 	Data          interface{} `json:"data"`
+}
+
+// GetTypeName of given struct
+func GetTypeName(source interface{}) (reflect.Type, string) {
+	rawType := reflect.TypeOf(source)
+
+	// source is a pointer, convert to its value
+	if rawType.Kind() == reflect.Ptr {
+		rawType = rawType.Elem()
+	}
+
+	name := rawType.String()
+	// we need to extract only the name without the package
+	// name currently follows the format `package.StructName`
+	parts := strings.Split(name, ".")
+
+	// in case it is an embed struct, there is not package part
+	if len(parts) == 1 {
+		return rawType, name
+	}
+	return rawType, snakeCase(parts[1])
+}
+
+var (
+	matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
+	matchAllCap   = regexp.MustCompile("([a-z0-9])([A-Z])")
+)
+
+func snakeCase(str string) string {
+	snake := matchFirstCap.ReplaceAllString(str, "${1}_${2}")
+	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
+	return strings.ToLower(snake)
 }
 
 // Register defines generic methods to create a registry
@@ -37,7 +68,7 @@ type EventTypeRegister interface {
 
 // EventType implements the EventyTypeRegister interface
 type EventType struct {
-	sync.RWMutex
+	mu sync.RWMutex
 }
 
 // NewEventRegister gets a EventyTypeRegister interface
@@ -49,16 +80,16 @@ func NewEventRegister() EventTypeRegister {
 func (e *EventType) Set(source interface{}) {
 	rawType, name := GetTypeName(source)
 
-	mu.Lock()
+	e.mu.Lock()
 	registry[name] = rawType
-	mu.Unlock()
+	e.mu.Unlock()
 }
 
 // Get a type based on its name
 func (e *EventType) Get(name string) (interface{}, error) {
-	mu.RLock()
+	e.mu.RLock()
 	rawType, ok := registry[name]
-	mu.RUnlock()
+	e.mu.RUnlock()
 
 	if !ok {
 		return nil, fmt.Errorf("can't find %s in registry", name)
@@ -69,9 +100,9 @@ func (e *EventType) Get(name string) (interface{}, error) {
 
 // Count the quantity of events registered
 func (e *EventType) Count() int {
-	mu.RLock()
+	e.mu.RLock()
 	count := len(registry)
-	mu.RUnlock()
+	e.mu.RUnlock()
 
 	return count
 }
@@ -81,29 +112,12 @@ func (e *EventType) Events() []string {
 	var i int
 	values := make([]string, len(registry))
 
-	mu.RLock()
+	e.mu.RLock()
 	for key := range registry {
 		values[i] = key
 		i++
 	}
 
-	mu.RUnlock()
-
+	e.mu.RUnlock()
 	return values
-}
-
-// GetTypeName of given struct
-func GetTypeName(source interface{}) (reflect.Type, string) {
-	rawType := reflect.TypeOf(source)
-
-	// source is a pointer, convert to its value
-	if rawType.Kind() == reflect.Ptr {
-		rawType = rawType.Elem()
-	}
-
-	name := rawType.String()
-	// we need to extract only the name without the package
-	// name currently follows the format `package.StructName`
-	parts := strings.Split(name, ".")
-	return rawType, parts[1]
 }

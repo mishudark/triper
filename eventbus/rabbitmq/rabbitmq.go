@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/mishudark/eventhus"
+	"github.com/mishudark/triper"
 
 	"github.com/streadway/amqp"
 )
@@ -23,7 +23,7 @@ func NewClient(username, password, host string, port int) (*Client, error) {
 }
 
 // Publish a event
-func (c *Client) Publish(event eventhus.Event, bucket, subset string) error {
+func (c *Client) Publish(event triper.Event, bucket, subset string) error {
 	ch, err := c.conn.Channel()
 	if err != nil {
 		return err

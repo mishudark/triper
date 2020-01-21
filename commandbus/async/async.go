@@ -1,19 +1,19 @@
 package async
 
-import "github.com/mishudark/eventhus"
+import "github.com/mishudark/triper"
 
-var workerPool = make(chan chan eventhus.Command)
+var workerPool = make(chan chan triper.Command)
 
 // Worker contains the basic info to manage commands
 type Worker struct {
-	WorkerPool     chan chan eventhus.Command
-	JobChannel     chan eventhus.Command
-	CommandHandler eventhus.CommandHandlerRegister
+	WorkerPool     chan chan triper.Command
+	JobChannel     chan triper.Command
+	CommandHandler triper.CommandHandlerRegister
 }
 
 // Bus stores the command handler
 type Bus struct {
-	CommandHandler eventhus.CommandHandlerRegister
+	CommandHandler triper.CommandHandlerRegister
 	maxWorkers     int
 }
 
@@ -24,7 +24,7 @@ func (w *Worker) Start() {
 			w.WorkerPool <- w.JobChannel
 
 			job := <-w.JobChannel
-			handler, err := w.CommandHandler.Get(job)
+			handler, err := w.CommandHandler.GetHandler(job)
 			if err != nil {
 				continue
 			}
@@ -41,26 +41,30 @@ func (w *Worker) Start() {
 }
 
 // NewWorker initialize the values of worker and start it
-func NewWorker(commandHandler eventhus.CommandHandlerRegister) {
+func NewWorker(commandHandler triper.CommandHandlerRegister) {
 	w := Worker{
 		WorkerPool:     workerPool,
 		CommandHandler: commandHandler,
-		JobChannel:     make(chan eventhus.Command),
+		JobChannel:     make(chan triper.Command),
 	}
 
 	w.Start()
 }
 
 // HandleCommand ad a job to the queue
-func (b *Bus) HandleCommand(command eventhus.Command) {
-	go func(c eventhus.Command) {
+func (b *Bus) HandleCommand(command triper.Command) (id string) {
+	// generate an unique identifier to trace the command
+	command.GenerateUUID()
+	go func(c triper.Command) {
 		workerJobQueue := <-workerPool
 		workerJobQueue <- c
 	}(command)
+
+	return command.GetID()
 }
 
 // NewBus return a bus with command handler register
-func NewBus(register eventhus.CommandHandlerRegister, maxWorkers int) *Bus {
+func NewBus(register triper.CommandHandlerRegister, maxWorkers int) *Bus {
 	b := &Bus{
 		CommandHandler: register,
 		maxWorkers:     maxWorkers,

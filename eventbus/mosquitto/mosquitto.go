@@ -2,11 +2,11 @@ package mosquitto
 
 import (
 	"encoding/json"
-	"github.com/mishudark/eventhus"
 	"fmt"
+	MQTT "github.com/eclipse/paho.mqtt.golang"
+	"github.com/mishudark/triper"
 	"log"
 	"os"
-	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
 var info = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
@@ -15,8 +15,8 @@ var fatal = log.New(os.Stderr, "FATAL: ", log.Ldate|log.Ltime|log.Lshortfile)
 
 // Client nats
 type Client struct {
-	options  *MQTT.ClientOptions
-	client   MQTT.Client
+	options *MQTT.ClientOptions
+	client  MQTT.Client
 }
 
 //MqttDefaultPort is the default port
@@ -30,7 +30,6 @@ const MqttDefaultMethod = "tcp"
 
 //MqttDefaultClientId is the default method
 const MqttDefaultClientId = "cqrs-es"
-
 
 //NewClient create a new client with default parameters
 func NewClient() (*Client, error) {
@@ -59,7 +58,7 @@ func NewClientWithPort(method string, host string, port int, clientID string) (*
 }
 
 // Publish a event
-func (c *Client) Publish(event eventhus.Event, bucket, subset string) error {
+func (c *Client) Publish(event triper.Event, bucket, subset string) error {
 
 	info.Println("Publish Begin")
 

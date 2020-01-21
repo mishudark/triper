@@ -3,7 +3,7 @@ package eventbus
 import (
 	"log"
 
-	"github.com/mishudark/eventhus"
+	"github.com/mishudark/triper"
 )
 
 // Logger logs messages sent to the event bus.
@@ -19,7 +19,7 @@ func NewLogger(l *log.Logger) *Logger {
 }
 
 // Publish logs event details out.
-func (l *Logger) Publish(e eventhus.Event, b, s string) error {
+func (l *Logger) Publish(e triper.Event, b, s string) error {
 	log.Printf("bucket: %s subset: %s event: %+v", b, s, e)
 	return nil
 }

@@ -1,54 +1,51 @@
-package eventhus
+package triper
 
 import (
 	"fmt"
-	"reflect"
 	"sync"
 )
 
-// CommandHandle defines the contract to handle commands
-type CommandHandle interface {
+// CommandHandler defines the contract to handle commands
+type CommandHandler interface {
 	Handle(command Command) error
 }
 
 // CommandHandlerRegister stores the handlers for commands
 type CommandHandlerRegister interface {
-	Add(command interface{}, handler CommandHandle)
-	Get(command interface{}) (CommandHandle, error)
-	// Handlers() []string
+	Add(command interface{}, handler CommandHandler)
+	GetHandler(command interface{}) (CommandHandler, error)
 }
 
 // CommandRegister contains a registry of command-handler style
 type CommandRegister struct {
-	sync.RWMutex
-	registry map[string]CommandHandle
-	// repository *Repository
+	mu       sync.RWMutex
+	registry map[string]CommandHandler
 }
 
 // NewCommandRegister creates a new CommandHandler
 func NewCommandRegister() *CommandRegister {
 	return &CommandRegister{
-		registry: make(map[string]CommandHandle),
-		// repository: repository,
+		registry: make(map[string]CommandHandler),
 	}
 }
 
 // Add a new command with its handler
-func (c *CommandRegister) Add(command interface{}, handler CommandHandle) {
-	c.Lock()
-	defer c.Unlock()
+func (c *CommandRegister) Add(command interface{}, handler CommandHandler) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-	rawType := reflect.TypeOf(command)
-	name := rawType.String()
+	_, name := GetTypeName(command)
 	c.registry[name] = handler
 }
 
-// Get the handler for a command
-func (c *CommandRegister) Get(command interface{}) (CommandHandle, error) {
-	rawType := reflect.TypeOf(command)
-	name := rawType.String()
+// GetHandler the handler for a command
+func (c *CommandRegister) GetHandler(command interface{}) (CommandHandler, error) {
+	_, name := GetTypeName(command)
 
+	c.mu.RLock()
 	handler, ok := c.registry[name]
+	c.mu.RUnlock()
+
 	if !ok {
 		return nil, fmt.Errorf("can't find %s in registry", name)
 	}

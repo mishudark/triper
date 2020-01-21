@@ -1,4 +1,4 @@
-# Eventhus
+# Triper
 
 CQRS/ES toolkit for Go.
 
@@ -10,7 +10,7 @@ The mainstream approach people use for interacting with an information system is
 
 # Examples
 
-[bank account](https://github.com/mishudark/eventhus/blob/master/examples/bank) shows a full example with `deposits` and `withdrawls`.
+[bank account](https://github.com/mishudark/triper/blob/master/examples/bank) shows a full example with `deposits` and `withdrawls`.
 
 # Usage
 
@@ -23,16 +23,16 @@ A command describes an **action** that should be performed; it's always named in
 Let’s start with some code:
 
 ```go
-import "github.com/mishudark/eventhus"
+import "github.com/mishudark/triper"
 
 // PerformDeposit to an account
 type PerformDeposit struct {
-	eventhus.BaseCommand
+	triper.BaseCommand
 	Amount int
 }
 ```
 
-At the beginning, we create the `PerformDeposit` command. It contains an anonymous struct field of type `eventhus.BaseCommand`. This means `PerformDeposit` automatically acquires all the methods of `eventhus.BaseCommand`.
+At the beginning, we create the `PerformDeposit` command. It contains an anonymous struct field of type `triper.BaseCommand`. This means `PerformDeposit` automatically acquires all the methods of `triper.BaseCommand`.
 
 You can also define custom fields, in this case `Amount` contains a quantity to be deposited into an account.
 
@@ -51,22 +51,22 @@ type DepositPerformed struct {
 
 ## Aggregate
 
-The aggregate is a logical boundary for things that can change in a business transaction of a given context. In the **Eventhus** context, it simplifies the process the commands and produce events.
+The aggregate is a logical boundary for things that can change in a business transaction of a given context. In the **Triper** context, it simplifies the process the commands and produce events.
 
 Show me the code!
 
 ```go
-import "github.com/mishudark/eventhus"
+import "github.com/mishudark/triper"
 
 //Account of bank
 type Account struct {
-	eventhus.BaseAggregate
+	triper.BaseAggregate
 	Owner   string
 	Balance int
 }
 ```
 
-We create the `Account` aggregate. It contains an anonymous struct field of type `eventhus.BaseAggregate`. This means `Account` automatically acquires all the methods of `eventhus.BaseAggregate`.
+We create the `Account` aggregate. It contains an anonymous struct field of type `triper.BaseAggregate`. This means `Account` automatically acquires all the methods of `triper.BaseAggregate`.
 
 Additionally `Account` has the fields `Balance` and `Owner` that represent the basic info of this context.
 
@@ -74,8 +74,8 @@ Now that we have our `aggregate`, we need to process the `PerformDeposit` comman
 
 ```go
 // HandleCommand create events and validate based on such command
-func (a *Account) HandleCommand(command eventhus.Command) error {
-	event := eventhus.Event{
+func (a *Account) HandleCommand(command triper.Command) error {
+	event := triper.Event{
 		AggregateID:   a.ID,
 		AggregateType: "Account",
 	}
@@ -100,13 +100,13 @@ First, we create an `event` with the basic info `AggregateID` as an identifier a
 
 Finally, the event should be applied to our aggregate; we use the helper `BaseAggregate.ApplyChangeHelper` with the params `aggregate`, `event` and the last argument set to `true`, meaning it should be stored and published via `event store` and `event publisher`.
 
-Note: `eventhus.BaseAggregate` has some helper methods to make our life easier, we use `HandleCommand` to process a `command` and produce the respective `event`.
+Note: `triper.BaseAggregate` has some helper methods to make our life easier, we use `HandleCommand` to process a `command` and produce the respective `event`.
 
 The last step in the aggregate journey is to apply the `events` to our `aggregate`:
 
 ```go
 // ApplyChange to account
-func (a *Account) ApplyChange(event eventhus.Event) {
+func (a *Account) ApplyChange(event triper.Event) {
 	switch e := event.Data.(type) {
 	case *AccountCreated:
 		a.Owner = e.Owner
@@ -121,11 +121,11 @@ Also, we use a switch-case format to determine the type of the `event` (note tha
 
 Note: The aggregate is never saved in its current state. Instead, it is stored as a series of `events` that can recreate the aggregate in its last state.
 
-Saving the events, publishing them, and recreating an aggregate from `event store` is made by **Eventhus** out of the box.
+Saving the events, publishing them, and recreating an aggregate from `event store` is made by **Triper** out of the box.
 
 # Config
 
-`Eventhus` needs to be configured to manage events and commands, and to know where to store and publish events.
+`Triper` needs to be configured to manage events and commands, and to know where to store and publish events.
 
 ## Event Store
 
@@ -134,7 +134,7 @@ Currently, it has support for `MongoDB`. `Rethinkdb` is in the scope to be added
 We create an `event store` with `config.Mongo`; it accepts `host`, `port` and `table` as arguments:
 
 ```go
-import "github.com/mishudark/eventhus/config"
+import "github.com/mishudark/triper/config"
 ...
 
 config.Mongo("localhost", 27017, "bank") // event store
@@ -147,7 +147,7 @@ config.Mongo("localhost", 27017, "bank") // event store
 We create an `eventbus` with `config.Nats`, it accepts `url data config` and `useSSL` as arguments:
 
 ```go
-import 	"github.com/mishudark/eventhus/config"
+import 	"github.com/mishudark/triper/config"
 ...
 
 config.Nats("nats://ruser:T0pS3cr3t@localhost:4222", false) // event bus
@@ -159,15 +159,15 @@ Now that we have all the pieces, we can register our `events`, `commands` and `a
 
 ```go
 import (
-	"github.com/mishudark/eventhus"
-	"github.com/mishudark/eventhus/commandhandler/basic"
-	"github.com/mishudark/eventhus/config"
-	"github.com/mishudark/eventhus/examples/bank"
+	"github.com/mishudark/triper"
+	"github.com/mishudark/triper/commandhandler/basic"
+	"github.com/mishudark/triper/config"
+	"github.com/mishudark/triper/examples/bank"
 )
 
-func getConfig() (eventhus.CommandBus, error) {
+func getConfig() (triper.CommandBus, error) {
 	// register events
-	reg := eventhus.NewEventRegister()
+	reg := triper.NewEventRegister()
 	reg.Set(bank.AccountCreated{})
 	reg.Set(bank.DepositPerformed{})
 	reg.Set(bank.WithdrawalPerformed{})

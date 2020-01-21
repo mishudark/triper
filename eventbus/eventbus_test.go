@@ -4,11 +4,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/mishudark/eventhus"
+	"github.com/mishudark/triper"
 )
 
 type producerStubEntry struct {
-	event  eventhus.Event
+	event  triper.Event
 	bucket string
 	subset string
 }
@@ -18,7 +18,7 @@ type producerStub struct {
 	err     error
 }
 
-func (s *producerStub) Publish(event eventhus.Event, bucket, subset string) error {
+func (s *producerStub) Publish(event triper.Event, bucket, subset string) error {
 	s.entries = append(s.entries, producerStubEntry{
 		event:  event,
 		bucket: bucket,
@@ -65,7 +65,7 @@ func Test_NewMultiPublisher(t *testing.T) {
 	producerTwo := &producerStub{}
 	sut := NewMultiPublisher(producerOne, producerTwo)
 
-	err := sut.Publish(eventhus.Event{}, "banks", "accounts")
+	err := sut.Publish(triper.Event{}, "banks", "accounts")
 
 	if len(producerOne.entries) != 1 || len(producerTwo.entries) != 1 {
 		t.Error("MultiPublisher did not give both producers 1 event")
@@ -85,7 +85,7 @@ func Test_NewMultiPublisher_AggregatesErrors(t *testing.T) {
 	}
 	sut := NewMultiPublisher(producerOne, producerTwo)
 
-	aerr := sut.Publish(eventhus.Event{}, "banks", "accounts")
+	aerr := sut.Publish(triper.Event{}, "banks", "accounts")
 
 	err, ok := aerr.(MultiPublisherError)
 

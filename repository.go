@@ -1,4 +1,4 @@
-package eventhus
+package triper
 
 // Repository is responsible to generate an Aggregate
 // save events and publish it
@@ -10,8 +10,8 @@ type Repository struct {
 // NewRepository creates a repository wieh a eventstore and eventbus access
 func NewRepository(store EventStore, bus EventBus) *Repository {
 	return &Repository{
-		store,
-		bus,
+		eventStore: store,
+		eventBus:   bus,
 	}
 }
 
@@ -24,7 +24,7 @@ func (r *Repository) Load(aggregate AggregateHandler, ID string) error {
 	}
 
 	for _, event := range events {
-		aggregate.ApplyChangeHelper(aggregate, event, false)
+		ReduceHelper(aggregate, event, false)
 	}
 	return nil
 }
@@ -45,6 +45,30 @@ func (r *Repository) PublishEvents(aggregate AggregateHandler, bucket, subset st
 	}
 
 	return nil
+}
+
+// PublishError to an eventBus
+func (r *Repository) PublishError(err error, command Command, bucket, subset string) error {
+	event := Event{
+		ID:            GenerateUUID(),
+		AggregateID:   command.GetAggregateID(),
+		AggregateType: command.GetAggregateType(),
+		CommandID:     command.GetID(),
+		Version:       command.GetVersion(),
+		Type:          "failure",
+	}
+
+	if failure, ok := err.(Failure); ok {
+		event.Data = failure
+	} else {
+		event.Data = struct {
+			Error error `json:"error"`
+		}{
+			Error: err,
+		}
+	}
+
+	return r.eventBus.Publish(event, bucket, subset)
 }
 
 // SafeSave the events without check the version

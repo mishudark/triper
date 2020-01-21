@@ -1,4 +1,4 @@
-package eventhus
+package triper
 
 import "testing"
 
@@ -26,7 +26,7 @@ func TestEventTypeRegister(t *testing.T) {
 		t.Error("expected error, got nil")
 	}
 
-	_, err = reg.Get("SubEvent")
+	_, err = reg.Get("sub_event")
 	if err != nil {
 		t.Error("expected nil, got", err)
 	}

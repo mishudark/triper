@@ -1,4 +1,4 @@
-package eventhus
+package triper
 
 // EventStore saves the events from an aggregate
 type EventStore interface {

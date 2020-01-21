@@ -3,7 +3,7 @@ package eventbus
 import (
 	"fmt"
 
-	"github.com/mishudark/eventhus"
+	"github.com/mishudark/triper"
 )
 
 // MultiPublisherError is returned from publish when
@@ -37,18 +37,18 @@ func (e *MultiPublisherError) Len() int {
 
 // MultiPublisher ...
 type MultiPublisher struct {
-	publishers []eventhus.EventBus
+	publishers []triper.EventBus
 }
 
 // NewMultiPublisher ...
-func NewMultiPublisher(all ...eventhus.EventBus) *MultiPublisher {
+func NewMultiPublisher(all ...triper.EventBus) *MultiPublisher {
 	return &MultiPublisher{
 		publishers: all,
 	}
 }
 
 // Publish an event through all registered publishers.
-func (c MultiPublisher) Publish(event eventhus.Event, bucket, subset string) error {
+func (c MultiPublisher) Publish(event triper.Event, bucket, subset string) error {
 	errs := MultiPublisherError{}
 
 	for _, p := range c.publishers {
