@@ -44,7 +44,7 @@ func NewFailure(err error, typ FailureType, command Command) error {
 }
 
 func (f Failure) Error() string {
-	return fmt.Sprintf("[%s]: command-id=%s command-type=%s command-version=%d aggregate-id:%s aggregate_type=%s error=%s",
+	return fmt.Sprintf("[%s]: command-id=%s command-type=%s command-version=%d aggregate-id=%s aggregate_type=%s error=%s",
 		f.Type,
 		f.CommandID,
 		f.CommandType,
