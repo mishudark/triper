@@ -9,7 +9,10 @@ import (
 
 // GenerateUUID returns an ULID id
 func GenerateUUID() string {
+	seed := time.Now().UnixNano()
+	source := rand.NewSource(seed)
+	entropy := rand.New(source)
+
 	t := time.Now()
-	entropy := ulid.Monotonic(rand.New(rand.NewSource(t.UnixNano())), 0)
 	return ulid.MustNew(ulid.Timestamp(t), entropy).String()
 }

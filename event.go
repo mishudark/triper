@@ -8,8 +8,6 @@ import (
 	"sync"
 )
 
-var registry = make(map[string]reflect.Type)
-
 // Event stores the data for every event
 type Event struct {
 	ID            string      `json:"id"`
@@ -68,12 +66,15 @@ type EventTypeRegister interface {
 
 // EventType implements the EventyTypeRegister interface
 type EventType struct {
-	mu sync.RWMutex
+	mu       sync.RWMutex
+	registry map[string]reflect.Type
 }
 
 // NewEventRegister gets a EventyTypeRegister interface
 func NewEventRegister() EventTypeRegister {
-	return &EventType{}
+	return &EventType{
+		registry: make(map[string]reflect.Type),
+	}
 }
 
 // Set a new type
@@ -81,14 +82,14 @@ func (e *EventType) Set(source interface{}) {
 	rawType, name := GetTypeName(source)
 
 	e.mu.Lock()
-	registry[name] = rawType
+	e.registry[name] = rawType
 	e.mu.Unlock()
 }
 
 // Get a type based on its name
 func (e *EventType) Get(name string) (interface{}, error) {
 	e.mu.RLock()
-	rawType, ok := registry[name]
+	rawType, ok := e.registry[name]
 	e.mu.RUnlock()
 
 	if !ok {
@@ -101,7 +102,7 @@ func (e *EventType) Get(name string) (interface{}, error) {
 // Count the quantity of events registered
 func (e *EventType) Count() int {
 	e.mu.RLock()
-	count := len(registry)
+	count := len(e.registry)
 	e.mu.RUnlock()
 
 	return count
@@ -110,10 +111,10 @@ func (e *EventType) Count() int {
 // Events registered
 func (e *EventType) Events() []string {
 	var i int
-	values := make([]string, len(registry))
+	values := make([]string, len(e.registry))
 
 	e.mu.RLock()
-	for key := range registry {
+	for key := range e.registry {
 		values[i] = key
 		i++
 	}
