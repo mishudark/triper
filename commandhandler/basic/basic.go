@@ -2,6 +2,8 @@ package basic
 
 import (
 	"errors"
+	"fmt"
+	"github.com/golang/glog"
 	"reflect"
 
 	"github.com/mishudark/triper"
@@ -28,14 +30,14 @@ func NewCommandHandler(repository *triper.Repository, aggregate triper.Aggregate
 }
 
 // Handle a command, if any error is produced, it will be published to the errors bucket
-func (h *Handler) Handle(command triper.Command) error {
-	var err error
+func (h *Handler) Handle(command triper.Command) (err error) {
 
 	version := command.GetVersion()
 	aggregate := reflect.New(h.aggregate).Interface().(triper.AggregateHandler)
 
 	defer func() {
 		if err != nil {
+			glog.Errorln(err)
 			h.repository.PublishError(err, command, h.bucket, "errors")
 		}
 	}()
@@ -43,6 +45,10 @@ func (h *Handler) Handle(command triper.Command) error {
 	if version != 0 {
 		if err = h.repository.Load(aggregate, command.GetAggregateID()); err != nil {
 			return triper.NewFailure(err, triper.FailureLoadingEvents, command)
+		}
+
+		if version != aggregate.GetVersion() {
+			return triper.NewFailure(fmt.Errorf("got: %d, expected: %d", aggregate.GetVersion(), version), triper.FailureVersionMissmatch, command)
 		}
 	}
 
