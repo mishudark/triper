@@ -57,7 +57,7 @@ func (event *BasicEventCreated) CleanEvent() (*BasicEventCreated, error) {
 	return event, nil
 }
 
-//ApplyChange to account
+//ApplyChange to the Event
 func (ev *BasicEvent) Reduce(event triper.Event) error {
 	switch event.Data.(type) {
 	case *BasicEventCreated:
