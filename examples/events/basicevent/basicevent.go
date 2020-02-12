@@ -8,11 +8,14 @@ import (
 	"github.com/mishudark/triper"
 )
 
-//ErrSubjectMissing When an event has no subject id
-var ErrSubjectMissing = errors.New("SubjectId not found")
-var ErrCreatedAtMissing = errors.New("CreatedAt not found")
 
-// Base Structure for the events
+var (
+	//ErrSubjectMissing When an event has no subject id
+	ErrSubjectMissing = errors.New("SubjectId not found")
+	//ErrCreatedAtMissing When an event has no cratedAt date
+	ErrCreatedAtMissing = errors.New("CreatedAt not found")
+)
+
 //BasicEvent is the base structure for the events
 type BasicEvent struct {
 	triper.BaseAggregate
