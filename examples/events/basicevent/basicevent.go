@@ -1,9 +1,8 @@
-package eventlog
+package basicevent
 
 import (
 	"errors"
-	"fmt"
-	"log"
+	"github.com/golang/glog"
 	"time"
 
 	"github.com/mishudark/triper"
@@ -14,9 +13,8 @@ var ErrSubjectMissing = errors.New("SubjectId not found")
 var ErrCreatedAtMissing = errors.New("CreatedAt not found")
 
 // Base Structure for the events
-type Logevent struct {
+type BasicEvent struct {
 	triper.BaseAggregate
-	Owner     string
 	SubjectId string
 	Payload   map[string]string
 	Source    string
@@ -26,7 +24,7 @@ type Logevent struct {
 }
 
 //Assign the values to the corresponding fields on an event
-func (event *LogeventCreated) CleanEvent() (*LogeventCreated, error) {
+func (event *BasicEventCreated) CleanEvent() (*BasicEventCreated, error) {
 
 	if val, ok := event.Payload["subject_id"]; ok {
 		event.SubjectId = val
@@ -38,7 +36,7 @@ func (event *LogeventCreated) CleanEvent() (*LogeventCreated, error) {
 	if val, ok := event.Payload["created_at"]; ok {
 		t, err := time.Parse(time.RFC3339, val)
 		if err != nil {
-			fmt.Println(err)
+			glog.Fatalln(err)
 		}
 		event.CreatedAt = t
 		delete(event.Payload, "created_at")
@@ -48,7 +46,6 @@ func (event *LogeventCreated) CleanEvent() (*LogeventCreated, error) {
 
 	if val, ok := event.Payload["source"]; ok {
 		event.Source = val
-		event.Tag = fmt.Sprintf("%s-%s", val, event.CreatedAt)
 		delete(event.Payload, "source")
 	}
 
@@ -61,13 +58,13 @@ func (event *LogeventCreated) CleanEvent() (*LogeventCreated, error) {
 }
 
 //ApplyChange to account
-func (ev *Logevent) Reduce(event triper.Event) error{
-	switch e := event.Data.(type) {
-	case *LogeventCreated:
-		ev.Owner = e.Owner
+func (ev *BasicEvent) Reduce(event triper.Event) error {
+	switch event.Data.(type) {
+	case *BasicEventCreated:
 		ev.ID = event.AggregateID
-	case *EventChanged:
-		ev.Owner = e.Owner
+	case *ProductChanged:
+		ev.ID = event.AggregateID
+	case *CustomerCreated:
 		ev.ID = event.AggregateID
 	default:
 		return errors.New("undefined event")
@@ -76,41 +73,44 @@ func (ev *Logevent) Reduce(event triper.Event) error{
 }
 
 //HandleCommand create events and validate based on such command
-func (ev *Logevent) HandleCommand(command triper.Command) error {
+func (ev *BasicEvent) HandleCommand(command triper.Command) error {
 	event := triper.Event{
 		AggregateID:   ev.ID,
-		AggregateType: "Logevent",
+		AggregateType: "BasicEvent",
 	}
 
 	switch c := command.(type) {
-	case *CreateLogevent:
+	case *CreateCustomer:
 		event.AggregateID = c.AggregateID
 
-		newEvent := &LogeventCreated{
-			Owner:   c.Owner,
+		baseEvent := BasicEventCreated{
 			Payload: c.Payload,
+			Tag:     c.Type,
 		}
-		newEvent, err := newEvent.CleanEvent()
+		newEvent, err := baseEvent.CleanEvent()
 		if err != nil {
 			return err
 		}
-		event.Data = newEvent
-	case *ChangeLogevent:
-		event.AggregateID = c.AggregateID
+		event.Data = &CustomerCreated{
+			newEvent,
+		}
 
-		event.Data = &EventChanged{
-			LogeventCreated{
-				Owner:   c.Owner,
-				Payload: c.Payload,
-			},
+		event.Data = newEvent
+
+	case *ChangeProduct:
+		event.AggregateID = c.AggregateID
+		baseEvent := BasicEventCreated{
+			Payload: c.Payload,
+			Tag:     c.Type,
+		}
+		event.Data = &ProductChanged{
+			&baseEvent,
 		}
 
 	}
 
-	log.Printf("created: %s", event.Data)
-
 	err := ev.Reduce(event)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	return nil

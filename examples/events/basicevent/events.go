@@ -1,27 +1,21 @@
-package eventlog
+package basicevent
 
 import "time"
 
 //Thi is the base Event Created
-type LogeventCreated struct {
-	Owner     string            `json:"owner"`
+type BasicEventCreated struct {
 	SubjectId string            `json:"subject_id"`
 	Payload   map[string]string `json:"payload"`
 	Source    string            `json:"source"`
 	Target    string            `json:"target"`
 	CreatedAt time.Time         `json:"created_at"`
-	Tag       string 			`json:"tag"`
+	Tag       string            `json:"tag"`
 }
 
 type CustomerCreated struct {
-	LogeventCreated
+	Event *BasicEventCreated `json:"event"`
 }
 
-type EventChanged struct {
-	LogeventCreated
-}
-
-//OwnerChanged event
-type OwnerChanged struct {
-	Owner string `json:"owner"`
+type ProductChanged struct {
+	Event *BasicEventCreated `json:"event"`
 }
