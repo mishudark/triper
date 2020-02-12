@@ -13,6 +13,7 @@ var ErrSubjectMissing = errors.New("SubjectId not found")
 var ErrCreatedAtMissing = errors.New("CreatedAt not found")
 
 // Base Structure for the events
+//BasicEvent is the base structure for the events
 type BasicEvent struct {
 	triper.BaseAggregate
 	SubjectId string
