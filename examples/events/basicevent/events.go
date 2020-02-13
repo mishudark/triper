@@ -2,7 +2,7 @@ package basicevent
 
 import "time"
 
-//Thi is the base Event Created
+// This is the base Event Created
 type BasicEventCreated struct {
 	SubjectId string            `json:"subject_id"`
 	Payload   map[string]string `json:"payload"`

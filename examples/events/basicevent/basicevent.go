@@ -10,13 +10,13 @@ import (
 
 
 var (
-	//ErrSubjectMissing When an event has no subject id
+	// ErrSubjectMissing When an event has no subject id
 	ErrSubjectMissing = errors.New("SubjectId not found")
-	//ErrCreatedAtMissing When an event has no cratedAt date
+	// ErrCreatedAtMissing When an event has no cratedAt date
 	ErrCreatedAtMissing = errors.New("CreatedAt not found")
 )
 
-//BasicEvent is the base structure for the events
+// BasicEvent is the base structure for the events
 type BasicEvent struct {
 	triper.BaseAggregate
 	SubjectId string
@@ -27,7 +27,7 @@ type BasicEvent struct {
 	CreatedAt time.Time
 }
 
-//Assign the values to the corresponding fields on an event
+// Assign the values to the corresponding fields on an event
 func (event *BasicEventCreated) CleanEvent() (*BasicEventCreated, error) {
 
 	if val, ok := event.Payload["subject_id"]; ok {
@@ -61,7 +61,7 @@ func (event *BasicEventCreated) CleanEvent() (*BasicEventCreated, error) {
 	return event, nil
 }
 
-//ApplyChange to the Event
+// Reduce applies the change to the Event
 func (ev *BasicEvent) Reduce(event triper.Event) error {
 	switch event.Data.(type) {
 	case *BasicEventCreated:
@@ -76,7 +76,7 @@ func (ev *BasicEvent) Reduce(event triper.Event) error {
 	return nil
 }
 
-//HandleCommand create events and validate based on such command
+// HandleCommand create events and validate based on such command
 func (ev *BasicEvent) HandleCommand(command triper.Command) error {
 	event := triper.Event{
 		AggregateID:   ev.ID,
