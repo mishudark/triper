@@ -46,6 +46,5 @@ func (c *Client) Publish(event triper.Event, bucket, subset string) error {
 	nc.Publish(subj, blob)
 	nc.Flush()
 
-	err = nc.LastError()
-	return err
+	return nc.LastError()
 }

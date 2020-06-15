@@ -3,14 +3,15 @@ package basic
 import (
 	"errors"
 	"fmt"
-	"github.com/golang/glog"
 	"reflect"
+
+	"github.com/golang/glog"
 
 	"github.com/mishudark/triper"
 )
 
-// ErrInvalidID missing initial event
-var ErrInvalidID = errors.New("Invalid ID, initial event missign")
+// ErrInvalidID missing initial event.
+var ErrInvalidID = errors.New("invalid ID, initial event missign")
 
 // Handler contains the info to manage commands
 type Handler struct {
@@ -19,7 +20,7 @@ type Handler struct {
 	bucket, subset string
 }
 
-// NewCommandHandler return a handler
+// NewCommandHandler return a handler.
 func NewCommandHandler(repository *triper.Repository, aggregate triper.AggregateHandler, bucket, subset string) triper.CommandHandler {
 	return &Handler{
 		repository: repository,
@@ -29,16 +30,19 @@ func NewCommandHandler(repository *triper.Repository, aggregate triper.Aggregate
 	}
 }
 
-// Handle a command, if any error is produced, it will be published to the errors bucket
+// Handle a command, if any error is produced, it will be published to the errors bucket.
 func (h *Handler) Handle(command triper.Command) (err error) {
-
 	version := command.GetVersion()
 	aggregate := reflect.New(h.aggregate).Interface().(triper.AggregateHandler)
 
 	defer func() {
 		if err != nil {
 			glog.Errorln(err)
-			h.repository.PublishError(err, command, h.bucket, "errors")
+			er := h.repository.PublishError(err, command, h.bucket, "errors")
+
+			if er != nil {
+				glog.Errorln(er)
+			}
 		}
 	}()
 

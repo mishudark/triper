@@ -1,23 +1,25 @@
 package async
 
-import "github.com/mishudark/triper"
+import (
+	"github.com/golang/glog"
+	"github.com/mishudark/triper"
+)
 
-var workerPool = make(chan chan triper.Command)
-
-// Worker contains the basic info to manage commands
+// Worker contains the basic info to manage commands.
 type Worker struct {
 	WorkerPool     chan chan triper.Command
 	JobChannel     chan triper.Command
 	CommandHandler triper.CommandHandlerRegister
 }
 
-// Bus stores the command handler
+// Bus stores the command handler.
 type Bus struct {
 	CommandHandler triper.CommandHandlerRegister
 	maxWorkers     int
+	workerPool     chan chan triper.Command
 }
 
-// Start initialize a worker ready to receive jobs
+// Start initialize a worker ready to receive jobs.
 func (w *Worker) Start() {
 	go func() {
 		for {
@@ -34,14 +36,14 @@ func (w *Worker) Start() {
 			}
 
 			if err = handler.Handle(job); err != nil {
-				//TODO: log the error
+				glog.Error(err)
 			}
 		}
 	}()
 }
 
-// NewWorker initialize the values of worker and start it
-func NewWorker(commandHandler triper.CommandHandlerRegister) {
+// NewWorker initialize the values of worker and start it.
+func NewWorker(commandHandler triper.CommandHandlerRegister, workerPool chan chan triper.Command) {
 	w := Worker{
 		WorkerPool:     workerPool,
 		CommandHandler: commandHandler,
@@ -51,23 +53,24 @@ func NewWorker(commandHandler triper.CommandHandlerRegister) {
 	w.Start()
 }
 
-// HandleCommand ad a job to the queue
+// HandleCommand ad a job to the queue.
 func (b *Bus) HandleCommand(command triper.Command) (id string) {
 	// generate an unique identifier to trace the command
 	command.GenerateUUID()
 	go func(c triper.Command) {
-		workerJobQueue := <-workerPool
+		workerJobQueue := <-b.workerPool
 		workerJobQueue <- c
 	}(command)
 
 	return command.GetID()
 }
 
-// NewBus return a bus with command handler register
+// NewBus return a bus with command handler register.
 func NewBus(register triper.CommandHandlerRegister, maxWorkers int) *Bus {
 	b := &Bus{
 		CommandHandler: register,
 		maxWorkers:     maxWorkers,
+		workerPool:     make(chan chan triper.Command),
 	}
 
 	// start the bus
@@ -78,6 +81,6 @@ func NewBus(register triper.CommandHandlerRegister, maxWorkers int) *Bus {
 // Start the bus
 func (b *Bus) Start() {
 	for i := 0; i < b.maxWorkers; i++ {
-		NewWorker(b.CommandHandler)
+		NewWorker(b.CommandHandler, b.workerPool)
 	}
 }

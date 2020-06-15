@@ -116,7 +116,7 @@ func (c *Client) save(events []triper.Event, version int, safe bool) error {
 			return fmt.Errorf("badger: %s, aggregate already exists", aggregate.ID)
 		case badger.ErrKeyNotFound:
 			err = txn.Set([]byte(aggregate.ID), aggregateBlob)
-		default: // another error differente from key not found is not desirable
+		default: // another error different from key not found is not desirable
 			return err
 		}
 	} else {
@@ -132,7 +132,7 @@ func (c *Client) save(events []triper.Event, version int, safe bool) error {
 			return err
 		}
 
-		if payload.Version != version {
+		if payload.Version != version && !safe {
 			return fmt.Errorf("badger: %s, aggregate version missmatch, wanted: %d, got: %d", aggregate.ID, version, payload.Version)
 		}
 
@@ -167,7 +167,7 @@ func (c *Client) Load(aggregateID string) ([]triper.Event, error) {
 		it := txn.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
 
-		// prexi has the format aggregateID.
+		// prefix has the format aggregateID.
 		prefix := []byte(aggregateID + ".")
 		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
 			item := it.Item()

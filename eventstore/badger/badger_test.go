@@ -43,7 +43,7 @@ func TestMain(m *testing.M) {
 
 func TestClientSave(t *testing.T) {
 	events := []triper.Event{
-		triper.Event{
+		{
 			ID:            triper.GenerateUUID(),
 			AggregateID:   Aid,
 			AggregateType: "order",
@@ -54,7 +54,7 @@ func TestClientSave(t *testing.T) {
 				SKU:  "123",
 			},
 		},
-		triper.Event{
+		{
 			ID:            triper.GenerateUUID(),
 			AggregateID:   Aid,
 			AggregateType: "order",

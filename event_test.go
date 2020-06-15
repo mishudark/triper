@@ -30,5 +30,4 @@ func TestEventTypeRegister(t *testing.T) {
 	if err != nil {
 		t.Error("expected nil, got", err)
 	}
-
 }

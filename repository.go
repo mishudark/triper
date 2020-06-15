@@ -16,8 +16,8 @@ func NewRepository(store EventStore, bus EventBus) *Repository {
 }
 
 // Load restore the last state of an aggregate
-func (r *Repository) Load(aggregate AggregateHandler, ID string) error {
-	events, err := r.eventStore.Load(ID)
+func (r *Repository) Load(aggregate AggregateHandler, id string) error {
+	events, err := r.eventStore.Load(id)
 
 	if err != nil {
 		return err

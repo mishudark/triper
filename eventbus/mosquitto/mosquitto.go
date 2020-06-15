@@ -11,8 +11,6 @@ import (
 
 var info = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
 
-var fatal = log.New(os.Stderr, "FATAL: ", log.Ldate|log.Ltime|log.Lshortfile)
-
 // Client nats
 type Client struct {
 	options *MQTT.ClientOptions
@@ -59,7 +57,6 @@ func NewClientWithPort(method string, host string, port int, clientID string) (*
 
 // Publish a event
 func (c *Client) Publish(event triper.Event, bucket, subset string) error {
-
 	info.Println("Publish Begin")
 
 	c.client = MQTT.NewClient(c.options)

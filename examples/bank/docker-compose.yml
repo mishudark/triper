@@ -2,4 +2,3 @@ nats:
   image: nats
   ports:
     - "4222:4222"
-

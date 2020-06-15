@@ -3,7 +3,7 @@ package config
 import (
 	"github.com/mishudark/triper"
 	"github.com/mishudark/triper/commandbus/async"
-	"github.com/mishudark/triper/eventbus/mosquitto"
+	"github.com/mishudark/triper/eventbus/mosquitto" // nolint: misspell
 	"github.com/mishudark/triper/eventbus/nats"
 	"github.com/mishudark/triper/eventbus/rabbitmq"
 	"github.com/mishudark/triper/eventstore/badger"
@@ -71,7 +71,7 @@ func Nats(urls string, useTLS bool) EventBus {
 }
 
 // Mosquitto generates a Mosquitto implementation of EventBus
-func Mosquitto(method string, host string, port int, clientID string) EventBus {
+func Mosquitto(method string, host string, port int, clientID string) EventBus { // nolint: misspell
 	return func() (triper.EventBus, error) {
 		return mosquitto.NewClientWithPort(method, host, port, clientID)
 	}
