@@ -10,7 +10,7 @@ import (
 
 // Client nats
 type Client struct {
-	Options nats.Options
+	nc *nats.Conn
 }
 
 // NewClient returns the basic client to access to nats
@@ -23,28 +23,26 @@ func NewClient(urls string, useTLS bool) (*Client, error) {
 		opts.Servers[i] = strings.Trim(s, " ")
 	}
 
+	nc, err := opts.Connect()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
-		opts,
+		nc: nc,
 	}, nil
 }
 
 // Publish a event
 func (c *Client) Publish(event triper.Event, bucket, subset string) error {
-	nc, err := c.Options.Connect()
-	if err != nil {
-		return err
-	}
-
-	defer nc.Close()
-
 	blob, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}
 
 	subj := bucket + "." + subset
-	nc.Publish(subj, blob)
-	nc.Flush()
+	c.nc.Publish(subj, blob)
+	c.nc.Flush()
 
-	return nc.LastError()
+	return c.nc.LastError()
 }
